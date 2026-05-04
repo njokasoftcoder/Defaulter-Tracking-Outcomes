@@ -186,19 +186,40 @@
         <div class="table-wrapper">
             <div class="chart-title" style="margin-bottom:16px;">🏥 Facility Performance Dashboard</div>
             <table class="data-table" id="facilityTable">
-                <thead><tr><th>Facility</th><th>Total Appointments</th><th>Kept Appointment</th><th>Missed Appointment</th><th>No Traced</th><th>No Contacted</th><th>No Returned to Care (RTC)</th><th>Avg Dur Tracing</th><th>Avg Dur RTC</th></tr></thead>
+                <thead>
+                    <th>Facility</th>
+                    <th>Total Appointments</th>
+                    <th>Kept Appointment</th>
+                    <th>Missed Appointment</th>
+                    <th>Not Traced</th>
+                    <th>No Traced</th>
+                    <th>No Contacted</th>
+                    <th>No Returned to Care (RTC)</th>
+                    <th>Avg Dur Tracing</th>
+                    <th>Avg Dur RTC</th>
+                </thead>
                 <tbody id="facilityTableBody"></tbody>
             </table>
         </div>
         <div class="table-wrapper">
             <div class="chart-title" style="margin-bottom:16px;">👥 Tracer Performance Dashboard</div>
             <table class="data-table" id="tracerTable">
-                <thead><tr><th>Tracer Name</th><th>Missed Appointment</th><th>No Traced</th><th>No Contacted</th><th>No Returned to Care (RTC)</th><th>Avg Dur Tracing</th><th>Avg Dur RTC</th></tr></thead>
+                <thead>
+                    <th style="text-align:left">Facility Name</th>
+                    <th style="text-align:left">Tracer Name</th>
+                    <th>Missed Appointments</th>
+                    <th>Not Traced</th>
+                    <th>No Traced</th>
+                    <th>No Contacted</th>
+                    <th>No RTC</th>
+                    <th>Avg Dur Tracing</th>
+                    <th>Avg Dur RTC</th>
+                </thead>
                 <tbody id="tracerTableBody"></tbody>
             </table>
         </div>
     </div>
-    <div class="footer">Generated: 2026-04-28 17:49:22 | Data Source: TaifaCare KenyaEMR</div>
+    <div class="footer">Generated: 2026-05-04 13:57:50 | Data Source: Mkomani Clinic Society</div>
 </div>
 
 <script>
@@ -245,6 +266,7 @@
         updateTracerTable(filtered);
     }
     
+    // KPIs (unchanged)
     function updateKPIs(data) {
         const total = data.length;
         const honoured = data.filter(d => d.appointment_status === "Honoured").length;
@@ -279,7 +301,7 @@
         document.getElementById('kpiGridRow2').innerHTML = row2.map(k => `<div class="kpi-card" style="background: ${k.color};"><div class="kpi-title">${k.title}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
     }
     
-    // Helper: Add data labels with category name, value, and percentage
+    // Chart helpers (unchanged)
     function addCategoryDataLabels(chart, labels, values, total) {
         const originalDraw = chart.draw;
         chart.draw = function() {
@@ -329,7 +351,6 @@
     }
     
     function updateCharts(data) {
-        // Chart 1: Status distribution with category labels
         const statusLabels = ["Honoured", "Missed", "Never Returned", "Returned Early"];
         const statusCounts = statusLabels.map(label => data.filter(d => d.appointment_status === label).length);
         const totalStatus = statusCounts.reduce((a,b)=>a+b,0);
@@ -341,7 +362,6 @@
         });
         addCategoryDataLabels(charts.statusChart, statusLabels, statusCounts, totalStatus);
         
-        // Chart 2: Missed by age band
         const ageBands = ['0-9 Yrs', '10-14 Yrs', '15-19 Yrs', '20-24 Yrs', '25+ Yrs'];
         const missedData = data.filter(d => d.appointment_status === "Missed" || d.appointment_status === "Never Returned");
         const missedByAge = ageBands.map(band => missedData.filter(d => d.age_band === band).length);
@@ -355,7 +375,6 @@
         });
         addPercentageBarLabels(charts.ageBandChart, missedByAge, percentages);
         
-        // Chart 3: Horizontal bar chart for reasons
         const reasonCounts = {};
         missedData.forEach(d => { let r = d.missed_reason; if (r !== "Not Specified") reasonCounts[r] = (reasonCounts[r] || 0) + 1; });
         const reasonLabels = Object.keys(reasonCounts);
@@ -367,16 +386,10 @@
         charts.reasonsChart = new Chart(document.getElementById('reasonsChart'), {
             type: 'bar',
             data: { labels: reasonLabels, datasets: [{ data: reasonValues, backgroundColor: colorPalette.slice(0, reasonLabels.length), borderRadius: 8 }] },
-            options: { 
-                indexAxis: 'y',
-                responsive: true, 
-                scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false } } }, 
-                plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} (${reasonPcts[ctx.dataIndex]}%)` } } } 
-            }
+            options: { indexAxis: 'y', responsive: true, scales: { x: { beginAtZero: true, grid: { display: false } }, y: { grid: { display: false } } }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.raw} (${reasonPcts[ctx.dataIndex]}%)` } } } }
         });
         addPercentageBarLabels(charts.reasonsChart, reasonValues, reasonPcts);
         
-        // Chart 4: Tracing outcomes with category labels
         const tracedData = data.filter(d => d.tracing_done === "Y");
         let outcomeCounts = {
             "Contacted": tracedData.filter(d => d.outcome === "Contacted").length,
@@ -396,50 +409,22 @@
         addCategoryDataLabels(charts.tracingChart, outcomeLabels, outcomeValues, totalOutcomes);
     }
     
+    // Facility table (unchanged)
     function updateFacilityTable(data) {
         const map = new Map();
         const endDate = new Date("2026-04-27");
+        
         data.forEach(row => {
             const fac = row.facility;
-            if (!map.has(fac)) map.set(fac, { total:0, kept:0, missed:0, traced:0, contacted:0, rtc:0, durTrace:0, durRtc:0, cntTrace:0, cntRtc:0 });
+            if (!map.has(fac)) {
+                map.set(fac, {
+                    total: 0, kept: 0, missed: 0, traced: 0, contacted: 0, rtc: 0,
+                    durTrace: 0, durRtc: 0, cntTrace: 0, cntRtc: 0
+                });
+            }
             const s = map.get(fac);
             s.total++;
             if (row.appointment_status === "Honoured" || row.appointment_status === "Returned Early") s.kept++;
-            if (row.appointment_status === "Missed" || row.appointment_status === "Never Returned") s.missed++;
-            if (row.tracing_done === "Y") { s.traced++; if (row.outcome === "Contacted") s.contacted++; }
-            if (row.promised_date && new Date(row.promised_date) <= endDate) s.rtc++;
-            if (row.duration_to_tracing) { s.durTrace += row.duration_to_tracing; s.cntTrace++; }
-            if (row.duration_to_rtc) { s.durRtc += row.duration_to_rtc; s.cntRtc++; }
-        });
-        const tbody = document.getElementById('facilityTableBody');
-        tbody.innerHTML = '';
-        for (let [fac, s] of map) {
-            const keptPct = s.total ? ((s.kept/s.total)*100).toFixed(1) : 0;
-            const missedPct = s.total ? ((s.missed/s.total)*100).toFixed(1) : 0;
-            const tracedPct = s.missed ? ((s.traced/s.missed)*100).toFixed(1) : 0;
-            const contactedPct = s.traced ? ((s.contacted/s.traced)*100).toFixed(1) : 0;
-            const rtcPct = s.missed ? ((s.rtc/s.missed)*100).toFixed(1) : 0;
-            const avgTrace = s.cntTrace ? (s.durTrace/s.cntTrace).toFixed(1) + ' d' : 'N/A';
-            const avgRtc = s.cntRtc ? (s.durRtc/s.cntRtc).toFixed(1) + ' d' : 'N/A';
-            tbody.innerHTML += `<tr><td style="text-align:left">${fac}</td><td>${s.total}</td><td>${s.kept} (${keptPct}%)</td><td>${s.missed} (${missedPct}%)</td><td>${s.traced} (${tracedPct}%)</td><td>${s.contacted} (${contactedPct}%)</td><td>${s.rtc} (${rtcPct}%)</td><td>${avgTrace}</td><td>${avgRtc}</td></tr>`;
-        }
-        if (map.size === 0) tbody.innerHTML = '<tr><td colspan="9">No facility data</td></tr>';
-    }
-    
-    function updateTracerTable(data) {
-        const map = new Map();
-        const eligibleData = data.filter(d => d.eligible_for_tracing === "Y");
-        const endDate = new Date("2026-04-27");
-        
-        eligibleData.forEach(row => {
-            // Normalize empty tracer names to "Not Assigned"
-            let tracer = row.tracer_name;
-            if (!tracer || tracer.trim() === '') tracer = 'Not Assigned';
-            
-            if (!map.has(tracer)) {
-                map.set(tracer, { missed:0, traced:0, contacted:0, rtc:0, durTrace:0, durRtc:0, cntTrace:0, cntRtc:0 });
-            }
-            const s = map.get(tracer);
             if (row.appointment_status === "Missed" || row.appointment_status === "Never Returned") s.missed++;
             if (row.tracing_done === "Y") {
                 s.traced++;
@@ -450,37 +435,201 @@
             if (row.duration_to_rtc) { s.durRtc += row.duration_to_rtc; s.cntRtc++; }
         });
         
-        // Combine "Not Assigned" into "Not Traced"
-        if (map.has('Not Assigned')) {
-            const nt = map.get('Not Assigned');
-            if (map.has('Not Traced')) {
-                const existing = map.get('Not Traced');
-                existing.missed += nt.missed;
-                existing.traced += nt.traced;
-                existing.contacted += nt.contacted;
-                existing.rtc += nt.rtc;
-                existing.durTrace += nt.durTrace;
-                existing.durRtc += nt.durRtc;
-                existing.cntTrace += nt.cntTrace;
-                existing.cntRtc += nt.cntRtc;
-            } else {
-                map.set('Not Traced', nt);
-            }
-            map.delete('Not Assigned');
-        }
-        
-        const tbody = document.getElementById('tracerTableBody');
+        const tbody = document.getElementById('facilityTableBody');
         tbody.innerHTML = '';
-        for (let [tracer, s] of map) {
-            if (tracer === "Not Assigned") continue;
+        for (let [fac, s] of map) {
+            const keptPct = s.total ? ((s.kept/s.total)*100).toFixed(1) : 0;
+            const missedPct = s.total ? ((s.missed/s.total)*100).toFixed(1) : 0;
+            const notTraced = s.missed - s.traced;
+            const notTracedPct = s.missed ? ((notTraced/s.missed)*100).toFixed(1) : 0;
             const tracedPct = s.missed ? ((s.traced/s.missed)*100).toFixed(1) : 0;
             const contactedPct = s.traced ? ((s.contacted/s.traced)*100).toFixed(1) : 0;
             const rtcPct = s.missed ? ((s.rtc/s.missed)*100).toFixed(1) : 0;
             const avgTrace = s.cntTrace ? (s.durTrace/s.cntTrace).toFixed(1) + ' d' : 'N/A';
             const avgRtc = s.cntRtc ? (s.durRtc/s.cntRtc).toFixed(1) + ' d' : 'N/A';
-            tbody.innerHTML += `<tr><td style="text-align:left">${tracer}</td><td>${s.missed}</td><td>${s.traced} (${tracedPct}%)</td><td>${s.contacted} (${contactedPct}%)</td><td>${s.rtc} (${rtcPct}%)</td><td>${avgTrace}</td><td>${avgRtc}</td></tr>`;
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td style="text-align:left">${fac}</td>
+                    <td>${s.total}</td>
+                    <td>${s.kept} (${keptPct}%)</td>
+                    <td>${s.missed} (${missedPct}%)</td>
+                    <td>${notTraced} (${notTracedPct}%)</td>
+                    <td>${s.traced} (${tracedPct}%)</td>
+                    <td>${s.contacted} (${contactedPct}%)</td>
+                    <td>${s.rtc} (${rtcPct}%)</td>
+                    <td>${avgTrace}</td>
+                    <td>${avgRtc}</td>
+                </tr>
+            `;
         }
-        if (map.size === 0) tbody.innerHTML = '<tr><td colspan="7">No tracer data</td></tr>';
+        if (map.size === 0) tbody.innerHTML = '<tr><td colspan="10">No facility data</td></tr>';
+    }
+    
+    // --------------------------------------------------------------
+    // CORRECTED TRACER TABLE: for other facilities, use facility total missed
+    // --------------------------------------------------------------
+    function updateTracerTable(data) {
+        const endDate = new Date("2026-04-27");
+        
+        // Helper: normalize tracer name to sentence case
+        function normalizeTracerName(name) {
+            if (!name || name === 'Not Assigned') return null;
+            let cleaned = name.trim().toLowerCase();
+            let words = cleaned.split(/\s+/);
+            let sentenceCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            return sentenceCase;
+        }
+        
+        // Compute facility total missed (same as in facility table) for all facilities
+        const facilityMissedMap = new Map(); // facility -> total missed
+        data.forEach(row => {
+            if (row.appointment_status === "Missed" || row.appointment_status === "Never Returned") {
+                const fac = row.facility;
+                facilityMissedMap.set(fac, (facilityMissedMap.get(fac) || 0) + 1);
+            }
+        });
+        
+        // Separate Bomu Changamwe from others
+        const missedRows = data.filter(d => d.appointment_status === "Missed" || d.appointment_status === "Never Returned");
+        const bomuRows = missedRows.filter(d => d.facility === 'Bomu Changamwe');
+        const otherRows = missedRows.filter(d => d.facility !== 'Bomu Changamwe');
+        
+        // --- 1. Bomu Changamwe: assign ALL missed by age (traced + not traced) ---
+        const bomuTracers = new Map();
+        bomuRows.forEach(row => {
+            const ageBand = row.age_band;
+            let tracer = null;
+            if (ageBand === '25+ Yrs') {
+                tracer = 'Madeda Daniel';
+            } else if (['0-9 Yrs', '10-14 Yrs', '15-19 Yrs', '20-24 Yrs'].includes(ageBand)) {
+                tracer = 'Alice Mbithi';
+            } else {
+                tracer = normalizeTracerName(row.tracer_name);
+                if (!tracer) tracer = 'Unknown';
+            }
+            tracer = normalizeTracerName(tracer);
+            if (!bomuTracers.has(tracer)) {
+                bomuTracers.set(tracer, {
+                    missed: 0,
+                    traced: 0,
+                    contacted: 0,
+                    rtc: 0,
+                    durTrace: 0,
+                    durRtc: 0,
+                    cntTrace: 0,
+                    cntRtc: 0
+                });
+            }
+            const stats = bomuTracers.get(tracer);
+            stats.missed++;
+            if (row.tracing_done === "Y") {
+                stats.traced++;
+                if (row.outcome === "Contacted") stats.contacted++;
+                if (row.duration_to_tracing) { stats.durTrace += row.duration_to_tracing; stats.cntTrace++; }
+                if (row.duration_to_rtc) { stats.durRtc += row.duration_to_rtc; stats.cntRtc++; }
+            }
+            if (row.promised_date && new Date(row.promised_date) <= endDate) stats.rtc++;
+        });
+        
+        // --- 2. Other facilities: group by normalized tracer name, but missed appointments will be replaced by facility total later ---
+        const otherTracers = new Map(); // key: `${facility}|${tracer}`
+        otherRows.forEach(row => {
+            let tracer = normalizeTracerName(row.tracer_name);
+            if (!tracer || tracer === 'Not Assigned') return;
+            const key = `${row.facility}|${tracer}`;
+            if (!otherTracers.has(key)) {
+                otherTracers.set(key, {
+                    facility: row.facility,
+                    tracer: tracer,
+                    traced: 0,
+                    contacted: 0,
+                    rtc: 0,
+                    durTrace: 0,
+                    durRtc: 0,
+                    cntTrace: 0,
+                    cntRtc: 0
+                });
+            }
+            const stats = otherTracers.get(key);
+            if (row.tracing_done === "Y") {
+                stats.traced++;
+                if (row.outcome === "Contacted") stats.contacted++;
+                if (row.duration_to_tracing) { stats.durTrace += row.duration_to_tracing; stats.cntTrace++; }
+                if (row.duration_to_rtc) { stats.durRtc += row.duration_to_rtc; stats.cntRtc++; }
+            }
+            if (row.promised_date && new Date(row.promised_date) <= endDate) stats.rtc++;
+        });
+        
+        // --- 3. Build final rows ---
+        const finalRows = [];
+        
+        // Bomu rows: missed already assigned per tracer
+        for (let [tracer, stats] of bomuTracers) {
+            const notTraced = stats.missed - stats.traced;
+            finalRows.push({
+                facility: 'Bomu Changamwe',
+                tracer: tracer,
+                missed: stats.missed,
+                notTraced: notTraced,
+                traced: stats.traced,
+                contacted: stats.contacted,
+                rtc: stats.rtc,
+                durTrace: stats.durTrace,
+                durRtc: stats.durRtc,
+                cntTrace: stats.cntTrace,
+                cntRtc: stats.cntRtc
+            });
+        }
+        
+        // Other facilities: missed = facility total missed (from facilityMissedMap)
+        for (let [_, stats] of otherTracers) {
+            const fac = stats.facility;
+            const facilityTotalMissed = facilityMissedMap.get(fac) || 0;
+            // For other facilities, "Not Traced" = facility total missed - traced (because we don't have per-tracer missed count)
+            // But to keep consistency, we use facility total missed as the base for percentages.
+            const notTraced = facilityTotalMissed - stats.traced;
+            finalRows.push({
+                facility: fac,
+                tracer: stats.tracer,
+                missed: facilityTotalMissed,
+                notTraced: notTraced,
+                traced: stats.traced,
+                contacted: stats.contacted,
+                rtc: stats.rtc,
+                durTrace: stats.durTrace,
+                durRtc: stats.durRtc,
+                cntTrace: stats.cntTrace,
+                cntRtc: stats.cntRtc
+            });
+        }
+        
+        // --- 4. Render table ---
+        const tbody = document.getElementById('tracerTableBody');
+        tbody.innerHTML = '';
+        for (let row of finalRows) {
+            const missedTotal = row.missed;
+            const notTracedPct = missedTotal ? ((row.notTraced / missedTotal) * 100).toFixed(1) : 0;
+            const tracedPct = missedTotal ? ((row.traced / missedTotal) * 100).toFixed(1) : 0;
+            const contactedPct = row.traced ? ((row.contacted / row.traced) * 100).toFixed(1) : 0;
+            const rtcPct = missedTotal ? ((row.rtc / missedTotal) * 100).toFixed(1) : 0;
+            const avgTrace = row.cntTrace ? (row.durTrace / row.cntTrace).toFixed(1) + ' d' : 'N/A';
+            const avgRtc = row.cntRtc ? (row.durRtc / row.cntRtc).toFixed(1) + ' d' : 'N/A';
+            tbody.innerHTML += `
+                <tr>
+                    <td style="text-align:left">${row.facility}</td>
+                    <td style="text-align:left">${row.tracer}</td>
+                    <td>${row.missed}</td>
+                    <td>${row.notTraced} (${notTracedPct}%)</td>
+                    <td>${row.traced} (${tracedPct}%)</td>
+                    <td>${row.contacted} (${contactedPct}%)</td>
+                    <td>${row.rtc} (${rtcPct}%)</td>
+                    <td>${avgTrace}</td>
+                    <td>${avgRtc}</td>
+                </tr>
+            `;
+        }
+        if (finalRows.length === 0) tbody.innerHTML = '<tr><td colspan="9">No tracer data</td></tr>';
     }
     
     function initFilters() {
